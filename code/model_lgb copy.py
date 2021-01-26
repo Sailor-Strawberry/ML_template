@@ -35,7 +35,7 @@ class ModelLGB(Model):
                                 params,
                                 dtrain,
                                 num_boost_round=num_round,
-                                valid_sets=dvalid,
+                                valid_sets=(dtrain, dvalid),
                                 early_stopping_rounds=early_stopping_rounds,
                                 verbose_eval=verbose
                                 )
@@ -43,7 +43,7 @@ class ModelLGB(Model):
 
         else:
             watchlist = [(dtrain, 'train')]
-            self.model = lgb.train(params, dtrain, num_boost_round=num_round,verbose_eval=verbose,valid_sets=dtrain,)
+            self.model = lgb.train(params, dtrain, num_boost_round=num_round, evals=watchlist)
             model_array.append(self.model)
 
 

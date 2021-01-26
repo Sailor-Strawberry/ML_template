@@ -10,6 +10,9 @@ from sklearn.preprocessing import LabelEncoder
 import warnings
 import jpholiday
 import optuna.integration.lightgbm as lgb
+from datetime import datetime, date, timedelta
+import calendar
+from functools import partial
 
 sys.path.append(os.pardir)
 sys.path.append('../..')
@@ -37,20 +40,90 @@ def make_harmonic_features_sin(value, period):
 
 
 # Target
-class hoge(Feature):
+class year(Feature):
     def create_features(self):
-        self.train['hoge'] = train['hoge']
-        self.test['hoge'] = test['hoge']
-        create_memo('hoge','ここに変数の説明を入力')
+        self.train['year'] = pd.to_datetime(train['datetime'],format='%Y-%m-%d').dt.year.astype('int8')
+        self.test['year'] = pd.to_datetime(test['datetime'],format='%Y-%m-%d').dt.year.astype('int8')
+        create_memo('year','年')
 
-class hoge(Feature):
+class month(Feature):
     def create_features(self):
-        cols = 'hoge'
-        tmp_df = pd.concat([train, test], axis=0, sort=False).reset_index(drop=True)
-        le = LabelEncoder().fit(tmp_df[cols])
-        self.train['hoge'] = le.transform(train[cols])
-        self.test['hoge'] = le.transform(test[cols])
-        create_memo('hoge','ここに変数の説明を入力')
+        self.train['month'] = pd.to_datetime(train['datetime'],format='%Y-%m-%d').dt.month.astype('int8')
+        self.test['month'] = pd.to_datetime(test['datetime'],format='%Y-%m-%d').dt.month.astype('int8')
+        create_memo('month','月')
+
+class day(Feature):
+    def create_features(self):
+        self.train['day'] = pd.to_datetime(train['datetime'],format='%Y-%m-%d').dt.day.astype('int8')
+        self.test['day'] = pd.to_datetime(test['datetime'],format='%Y-%m-%d').dt.day.astype('int8')
+        create_memo('day','日')
+
+class weekday(Feature):
+    def create_features(self):
+        self.train['weekday'] = pd.to_datetime(train['datetime'],format='%Y-%m-%d').dt.dayofweek.astype('int8')
+        self.test['weekday'] = pd.to_datetime(test['datetime'],format='%Y-%m-%d').dt.dayofweek.astype('int8')
+        create_memo('weekday','月曜日を０、日曜日を６')
+
+class is_holiday(Feature):
+    def create_features(self):
+        self.train['is_holiday'] = pd.to_datetime(train['datetime'],format='%Y-%m-%d').map(jpholiday.is_holiday).astype('int8')
+        self.test['is_holiday'] = pd.to_datetime(test['datetime'],format='%Y-%m-%d').map(jpholiday.is_holiday).astype('int8')
+        create_memo('is_holiday','祝日なら「1」、そうでないなら「0」')
+
+class before_is_holiday(Feature):
+    def create_features(self):
+        self.train['before_is_holiday'] = (((pd.to_datetime(train['datetime'],format='%Y-%m-%d')+timedelta(days=-1)).map(jpholiday.is_holiday)) | ((pd.to_datetime(train['datetime'],format='%Y-%m-%d')+timedelta(days=1)).dt.dayofweek>4)).astype(int)
+        self.test['before_is_holiday'] = (((pd.to_datetime(test['datetime'],format='%Y-%m-%d')+timedelta(days=-1)).map(jpholiday.is_holiday)) | ((pd.to_datetime(test['datetime'],format='%Y-%m-%d')+timedelta(days=1)).dt.dayofweek>4)).astype(int)
+        create_memo('before_is_holiday','前日が休日なら「1」、平日なら「0」')
+
+class next_is_holiday(Feature):
+    def create_features(self):
+        self.train['next_is_holiday'] = (((pd.to_datetime(train['datetime'],format='%Y-%m-%d')+timedelta(days=1)).map(jpholiday.is_holiday)) | ((pd.to_datetime(train['datetime'],format='%Y-%m-%d')+timedelta(days=1)).dt.dayofweek>4)).astype(int)
+        self.test['next_is_holiday'] = (((pd.to_datetime(test['datetime'],format='%Y-%m-%d')+timedelta(days=1)).map(jpholiday.is_holiday)) | ((pd.to_datetime(test['datetime'],format='%Y-%m-%d')+timedelta(days=1)).dt.dayofweek>4)).astype(int)
+        create_memo('next_is_holiday','翌日が休日なら「1」、平日なら「0」')
+
+class dayofyear_sin(Feature):
+    def create_features(self):
+        dow_make_features_sin = partial(make_harmonic_features_sin, period=366)
+        self.train['dayofyear_sin'] = pd.to_datetime(train['datetime'],format='%Y-%m-%d').dt.dayofyear.apply(dow_make_features_sin).astype('float32')
+        self.test['dayofyear_sin'] = pd.to_datetime(test['datetime'],format='%Y-%m-%d').dt.dayofyear.apply(dow_make_features_sin).astype('float32')
+        create_memo('dayofyear_sin','月の循環化')
+
+class dayofyear_cos(Feature):
+    def create_features(self):
+        dow_make_features_cos = partial(make_harmonic_features_cos, period=366)
+        self.train['dayofyear_cos'] = pd.to_datetime(train['datetime'],format='%Y-%m-%d').dt.dayofyear.apply(dow_make_features_cos).astype('float32')
+        self.test['dayofyear_cos'] = pd.to_datetime(test['datetime'],format='%Y-%m-%d').dt.dayofyear.apply(dow_make_features_cos).astype('float32')
+        create_memo('dayofyear_cos','月の循環化')
+
+class client(Feature):
+    def create_features(self):
+        self.train['client'] = train['client']
+        self.test['client'] = test['client']
+        create_memo('client','法人が絡む特殊な引越し日フラグ')
+
+class close(Feature):
+    def create_features(self):
+        self.train['close'] = train['close']
+        self.test['close'] = test['close']
+        create_memo('close','休業日')
+
+class price_am(Feature):
+    def create_features(self):
+        self.train['price_am'] = train['price_am']
+        self.test['price_am'] = test['price_am']
+        create_memo('price_am','午前の料金区分（-1は欠損を表す。5が最も料金が高い）')
+
+class price_pm(Feature):
+    def create_features(self):
+        self.train['price_pm'] = train['price_pm']
+        self.test['price_pm'] = test['price_pm']
+        create_memo('price_pm','午後の料金区分（-1は欠損を表す。5が最も料金が高い）')
+
+class y(Feature):
+    def create_features(self):
+        self.train['y'] = train['y']
+        create_memo('y','引っ越し数、目的変数')
 
 
 

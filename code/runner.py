@@ -268,7 +268,8 @@ class Runner:
         pred = model.predict(test_x)
 
         # 予測結果の保存
-        Util.dump(pred, f'../model/pred/{self.run_name}-test.pkl')
+        #Util.dump(pred, self.out_dir_name + f'{self.run_name}-pred.pkl')
+        Util.dump(pred, f'../models/pred/{self.run_name}-test.pkl')
 
         self.logger.info(f'{self.run_name} - end prediction all')
 

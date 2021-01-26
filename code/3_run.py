@@ -89,18 +89,27 @@ if __name__ == '__main__':
 
     # pklからロードする特徴量の指定
     features = [
-    'hoge'
-    ,'fuga'
-    ,'hello'
-    ,
+'before_is_holiday'
+,'client'
+,'close'
+,'day'
+,'dayofyear_cos'
+,'dayofyear_sin'
+,'is_holiday'
+,'month'
+,'next_is_holiday'
+,'price_am'
+,'price_pm'
+,'weekday'
+,'year'
     ]
 
     # CVの設定.methodは[KFold, StratifiedKFold ,GroupKFold]から選択可能
     # CVしない場合（全データで学習させる場合）はmethodに'None'を設定
     # StratifiedKFold or GroupKFoldの場合は、cv_targetに対象カラム名を設定する
     cv = {
-        'method': 'KFold',
-        'n_splits': 2,
+        'method': 'None',
+        'n_splits': 10,
         'random_state': 42,
         'shuffle': True,
         'cv_target': 'partner_area_cluster'
@@ -121,23 +130,24 @@ if __name__ == '__main__':
     setting = {
         'run_name': run_name,  # run名
         'feature_directory': FEATURE_DIR_NAME,  # 特徴量の読み込み先ディレクトリ
-        'target': 'delayTime',  # 目的変数
+        'target': 'y',  # 目的変数
         'calc_shap': False,  # shap値を計算するか否か
-        'save_train_pred': False  # trainデータでの推論値を保存するか否か
+        'save_train_pred': True  # trainデータでの推論値を保存するか否か
     }
 
     # モデルのパラメータ
     model_params = {
+        'objective': 'regression',
         'task': 'train',
         'boosting_type': 'gbdt',
-        'objective': 'regression',
-        'metric': 'mae',
-        'num_round': 500,
-        'early_stopping_rounds': 100,
-        'verbose': 500,
-        'random_state': 42,
+        'metric': 'rmse',
+        'num_round': 5000,
+        'early_stopping_rounds': 1000,
+        'verbose': 5000,
+        'random_state': 98,
         'learning_rate': 0.1,
-        'num_leaves': 20
+        'num_leaves': 31,
+        'max_depth' : -1
     }
 
     runner = Runner(run_name, ModelLGB, features, setting, model_params, cv, FEATURE_DIR_NAME, MODEL_DIR_NAME)
@@ -175,7 +185,7 @@ if __name__ == '__main__':
     setting = {
         'run_name': run_name,  # run名
         'feature_directory': FEATURE_DIR_NAME,  # 特徴量の読み込み先ディレクトリ
-        'target': 'delayTime',  # 目的変数
+        'target': 'y',  # 目的変数
         'calc_shap': False,  # shap値を計算するか否か
         'save_train_pred': False  # trainデータでの推論値を保存するか否か
     }
